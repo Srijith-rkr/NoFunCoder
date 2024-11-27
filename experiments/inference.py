@@ -7,6 +7,11 @@ from typing import *
 import argparse
 import datetime
 
+from pathlib import Path
+wd = Path(__file__).resolve().parent
+import sys 
+sys.path.append(str(wd.parent))
+
 from evaluation.utils import judge_submit
 from experiments.utils import (
     get_execution_feedback,
@@ -45,21 +50,21 @@ model_kwargs = {
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=None, choices=list(model_classes.keys()))
+parser.add_argument('--model', default='deepseek', choices=list(model_classes.keys())) # see models dict in https://github.com/CodeEff/ECCO/blob/80df5bb9c3145b8d673732fa13c50d9259e5d079/experiments/inference.py#L23
 parser.add_argument('--temperature', default=0.4,type=float)
 parser.add_argument('--max_new_tokens', default=1024,type=int)
 parser.add_argument('--few_shot_examples', default=0,type=int)
 parser.add_argument('--instruct_version', type=str, choices=['base', 'instruct'], default='instruct')
 parser.add_argument('--python_version', action='store_true', default=False) 
-parser.add_argument('--output_path', default='./inference_generations/generated_codes/')
+parser.add_argument('--output_path', default='./inference_generations/generated_codes_job/')
 parser.add_argument('--num_samples', default=1,type=int)
 parser.add_argument('--num_refinements', default=1,type=int)
-parser.add_argument('--judge_url', default='http://<YOUR_URL>:PORT')
+parser.add_argument('--judge_url', default='http://ec2-18-220-179-89.us-east-2.compute.amazonaws.com:2358')
 parser.add_argument('--test_cases_path', default='./data/codenet/public_test_cases', help='Path to public test cases')
 parser.add_argument('--nrows', default=None,type=int)
 parser.add_argument('--num_gpus',type=int, default=1)
-parser.add_argument('--finetuned_weights',type=str, default=None)
-parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='edit') 
+parser.add_argument('--finetuned_weights',type=str, default=None) # The official repo does not have finetuning code - have to check the shared folder
+parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='nl-exec-refine') 
 args = parser.parse_args()
 
 if 'nl2code' not in args.eval_mode: # Editing setting
@@ -101,7 +106,26 @@ engine = model_class(**model_kwarg) # Instantiate model
 llm = engine.get_model()
 
 if args.eval_mode in ['edit', 'nl2code']: # Non refinement settings
-    test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test
+    
+    #test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test
+    #above was throwing error, so replaced it with below 
+
+    processed_rows = []
+    for index, row in test.iterrows():
+        # Apply the coder_prompt_builder function on each row
+        processed_row = coder_prompt_builder(
+            row, 
+            train=train, 
+            engine = engine,
+            few_shot=args.few_shot_examples, 
+            instruct_version=args.instruct_version
+        )
+        # Append the result to the list
+        processed_rows.append(processed_row['prompt'])
+
+    # Convert the list back to a DataFrame or assign to a column in `test` if needed
+    test['prompt'] = processed_rows
+
 
     prompts = list(test['prompt'])
 
@@ -131,21 +155,31 @@ if args.eval_mode in ['edit', 'nl2code']: # Non refinement settings
 elif 'self-refine' in args.eval_mode:
     # ====== Step 1. Generate Faster Codes (First Try) =============
     print('\n=== Generating Codes: Try 0 =====\n')
-    test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test    
+    #test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test  
+    # 
+    test['prompt'] = test.apply(
+    lambda row: coder_prompt_builder(row, train=train, engine=engine,few_shot=args.few_shot_examples, instruct_version=args.instruct_version)['prompt'],
+    axis=1)
+    
     prompts = list(test['prompt'])
 
     # For now doing self-refine with 1 sample
     raw_generations = engine.generate(prompts, args.temperature, args.max_new_tokens, n_samples=1) # prompts, num_samples 
     generated_text = engine.extract_text_output(raw_generations)
-    test['full_generations_0'] = generated_text
+    test['full_generations_0'] = generated_text # This has the code with other explanations that the llm generated
     generated_codes = engine.extract_codes(generated_text)
-    test['generated_codes_0'] = generated_codes
+    test['generated_codes_0'] = generated_codes # This has only the code by applying model specific filters 
 
     for iteration in range(args.num_refinements):
         # ========== Step 2. Feedback ============
         print(f'\n=== Feedback {iteration} =====\n')
         # Get feedbacks prompts
-        test = test.apply(feedback_prompt_builder, axis=1, try_col_name=f'generated_codes_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        #test = test.apply(feedback_prompt_builder, axis=1, try_col_name=f'generated_codes_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        test['feedback_prompt'] = test.apply(
+            lambda row: feedback_prompt_builder(row, try_col_name=f'generated_codes_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)['feedback_prompt'],
+            axis=1
+        )
+
         feedback_prompts = list(test['feedback_prompt'])
 
         # Get feeedbacks
@@ -156,7 +190,11 @@ elif 'self-refine' in args.eval_mode:
         # ========== Step 3. Refine =============
         print(f'\n=== Generating refinement: {iteration} =====\n')
         # Get refinement prompts 
-        test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        #test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        test['refine_prompt'] = test.apply(
+            lambda row: refine_prompt_builder(row, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)['refine_prompt'],
+            axis=1)
+        
         refine_prompts = list(test['refine_prompt'])
         
         # Get refined codes
@@ -192,7 +230,8 @@ elif 'self-refine' in args.eval_mode:
 elif 'exec-refine' in args.eval_mode:
     # ====== Step 1. Generate Faster Codes (First Try) =============
     print('\n=== Generating Codes: Try 0 =====\n')
-    test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test    
+    #test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test    
+    test['prompt'] = test.apply(lambda row: coder_prompt_builder(row, train=train, engine=engine,few_shot=args.few_shot_examples, instruct_version=args.instruct_version)['prompt'],axis=1)
     prompts = list(test['prompt'])
 
     # For now doing self-refine with 1 sample
@@ -209,10 +248,10 @@ elif 'exec-refine' in args.eval_mode:
         exec_feedbacks = []
         # print(len(generated_codes))
 
-        for i, gen_code in enumerate(tqdm(generated_codes)):
+        for i, gen_code in tqdm.tqdm(enumerate(generated_codes), total=len(generated_codes)):
             # judge res is tuple of (accept, pass_tests, errors, run_times, memory)
             judge_res = judge_submit(gen_code, test.iloc[i]['problem_id'], 
-                        'args.test_cases_path', number_of_runs=1,
+                        args.test_cases_path, number_of_runs=1,
                         judge_url=args.judge_url)
             
             exec_feedbacks.append([get_execution_feedback(*judge_res)]) # Expand the tuple to pass args
@@ -223,7 +262,8 @@ elif 'exec-refine' in args.eval_mode:
         # ========== Step 3. Refine =============
         print(f'\n=== Generating refinement: {iteration} =====\n')
         # Get refinement prompts 
-        test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'exec_feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        #test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'exec_feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        test['refine_prompt'] = test.apply(lambda row: refine_prompt_builder(row, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'exec_feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)['refine_prompt'],axis=1)
         refine_prompts = list(test['refine_prompt'])
         
         # Get refined codes
@@ -261,7 +301,17 @@ elif 'exec-refine' in args.eval_mode:
 elif 'nl-exec-refine' in args.eval_mode:
     # ====== Step 1. Generate Faster Codes (First Try) =============
     print('\n=== Generating Codes: Try 0 =====\n')
-    test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test    
+    #test = test.apply(coder_prompt_builder, axis=1, engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version) # Added prompts to test    
+    test['prompt'] = test.apply(
+    lambda row: coder_prompt_builder(
+        row, 
+        train=train, 
+        engine=engine, 
+        few_shot=args.few_shot_examples, 
+        instruct_version=args.instruct_version
+    )['prompt'],
+    axis=1
+)
     prompts = list(test['prompt'])
 
     # For now doing self-refine with 1 sample
@@ -278,7 +328,7 @@ elif 'nl-exec-refine' in args.eval_mode:
         exec_feedbacks = []
         # print(len(generated_codes))
 
-        for i, gen_code in enumerate(tqdm(generated_codes)):
+        for i, gen_code in tqdm.tqdm(enumerate(generated_codes), total=len(generated_codes)):
             # judge res is tuple of (accept, pass_tests, errors, run_times, memory)
             judge_res = judge_submit(gen_code, test.iloc[i]['problem_id'], 
                         'args.test_cases_path', number_of_runs=1, 
@@ -291,7 +341,19 @@ elif 'nl-exec-refine' in args.eval_mode:
 
         # ========== Step 3. Reflect =============
         print(f'\n=== Reflecting {iteration} =====\n')
-        test = test.apply(build_reflect_prompts, axis=1, prev_try_col_name=f'generated_codes_{iteration}', exec_col_name=f'exec_feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        #test = test.apply(build_reflect_prompts, axis=1, prev_try_col_name=f'generated_codes_{iteration}', exec_col_name=f'exec_feedback_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        test['reflect_prompt'] = test.apply(
+            lambda row: build_reflect_prompts(
+                row, 
+                prev_try_col_name=f'generated_codes_{iteration}', 
+                exec_col_name=f'exec_feedback_{iteration}', 
+                engine=engine, 
+                train=train, 
+                few_shot=args.few_shot_examples, 
+                instruct_version=args.instruct_version
+            )['reflect_prompt'],
+            axis=1
+        )
         reflect_prompts = list(test['reflect_prompt'])
 
         # Get feeedbacks
@@ -302,7 +364,19 @@ elif 'nl-exec-refine' in args.eval_mode:
         # =========== Step 4: Refine ============
         print(f'\n=== Generating refined: Try {iteration+1} =====\n')
         # Get refinement prompts 
-        test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'reflect_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        #test = test.apply(refine_prompt_builder, axis=1, prev_try_col_name=f'generated_codes_{iteration}', feedback_col_name=f'reflect_{iteration}', engine=engine, train=train, few_shot=args.few_shot_examples, instruct_version=args.instruct_version)
+        test['refine_prompt'] = test.apply(
+            lambda row: refine_prompt_builder(
+                row, 
+                prev_try_col_name=f'generated_codes_{iteration}', 
+                feedback_col_name=f'reflect_{iteration}', 
+                engine=engine, 
+                train=train, 
+                few_shot=args.few_shot_examples, 
+                instruct_version=args.instruct_version
+            )['refine_prompt'],
+            axis=1
+        )
         refine_prompts = list(test['refine_prompt'])
         
         # Get refined codes
