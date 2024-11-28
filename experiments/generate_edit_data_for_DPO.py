@@ -1,3 +1,14 @@
+# TODO : read this
+"""
+Changed the code to generate data for DPO only for the edit based settings - does not transfer to NL or refinement based settings. 
+
+I have added two cmd line arguments - frac_samples and subset to control the number of samples to generate.
+frac_samples is the fraction of the test set to generate for
+subset is which subset of the test set to generate for
+
+for examples, if frac_samples = 0.1 and subset = 0, then the first 10% of the data will be generated.
+"""
+
 import os
 import pandas as pd
 from vllm import LLM, SamplingParams
@@ -51,12 +62,15 @@ model_kwargs = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='deepseek', choices=list(model_classes.keys())) # see models dict in https://github.com/CodeEff/ECCO/blob/80df5bb9c3145b8d673732fa13c50d9259e5d079/experiments/inference.py#L23
+parser.add_argument('--output_path', default='./inference_generations/gen_dpo_data/')
+parser.add_argument('--run_name',type=str , default=None) 
+parser.add_argument('--frac_samples',type=float , required=True) 
+parser.add_argument('--subset',type=int , required=True) 
 parser.add_argument('--temperature', default=0.4,type=float)
 parser.add_argument('--max_new_tokens', default=1024,type=int)
 parser.add_argument('--few_shot_examples', default=0,type=int)
 parser.add_argument('--instruct_version', type=str, choices=['base', 'instruct'], default='instruct')
 parser.add_argument('--python_version', action='store_true', default=False) 
-parser.add_argument('--output_path', default='./inference_generations/generated_codes_job/')
 parser.add_argument('--num_samples', default=1,type=int)
 parser.add_argument('--num_refinements', default=1,type=int)
 parser.add_argument('--judge_url', default='http://ec2-18-220-179-89.us-east-2.compute.amazonaws.com:2358')
@@ -67,10 +81,30 @@ parser.add_argument('--finetuned_weights',type=str, default=None) # The official
 parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='edit') 
 args = parser.parse_args()
 
+frac_samples = args.frac_samples
+subset = args.subset    
+args.output_path = os.path.join(args.output_path, args.run_name)
+
+
 if 'nl2code' not in args.eval_mode: # Editing setting
     dataset = load_dataset('EfficientCode/ECCO', 'edit')
     train = dataset['train'].to_pandas()
-    test = dataset['test'].to_pandas()
+    test = dataset['train'].to_pandas()
+
+    if frac_samples < 1:
+        frac_samples = int(len(test) * frac_samples)
+
+    if frac_samples * (subset + 1) > len(test):
+        test = test.iloc[subset*frac_samples:]
+        s = subset*frac_samples
+        e = len(test)
+
+    else:
+        test = test.iloc[subset*frac_samples:frac_samples*(subset+1)]
+        s = subset*frac_samples
+        e = frac_samples*(subset+1)
+
+    args.run_name = f'{args.model}_edit_{s}_to_{e}'    
 
     # Define prompt builders for the optimization/editing setting
     coder_prompt_builder = build_coder_prompts
@@ -145,8 +179,7 @@ if args.eval_mode in ['edit', 'nl2code']: # Non refinement settings
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    filename = f"{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
-
+    filename = f"{s}_to{e}_{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
     path = os.path.join(args.output_path, filename)
     out_file.to_json(path, orient='records', lines=True)
 
