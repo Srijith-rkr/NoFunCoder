@@ -155,4 +155,32 @@ def judge_submit(
 
     return accept, pass_tests, errors, run_times, memory
 
+
+def judge_submit_local(code, problem_id, test_cases_path, num_runs, synchronous=True, judge_url=None, number_of_tests=None):
+    """Submit code to judge server and get results"""
+    
+    data = {
+        'code': code,
+        'problem_id': problem_id,
+        'test_cases_path': test_cases_path,
+        'num_runs': num_runs,
+        'number_of_tests': number_of_tests
+    }
+    
+    try:
+        response = requests.post(f'{judge_url}/judge', json=data)
+        response.raise_for_status()
+        result = response.json()
+        
+        return (
+            result['valid'],
+            set(result['passed_tests']),
+            result['errors'],
+            result['runtimes'],
+            result['memory']
+        )
+        
+    except Exception as e:
+        print(f"Error submitting to judge: {str(e)}")
+        return False, set(), {'error': str(e)}, {}, {}
         
