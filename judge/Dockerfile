@@ -1,4 +1,4 @@
-FROM python:3.12
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -7,15 +7,16 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    apt-get install -y iputils-ping vim
+    iputils-ping \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the judge server code
-COPY . .
+# Copy all python files
+COPY *.py .
 
 # Create a non-root user for running submissions
 RUN useradd -m judge
@@ -24,7 +25,5 @@ RUN chown -R judge:judge /app
 # Switch to non-root user
 USER judge
 
-# Expose the port the judge server will run on
-EXPOSE 5000
-
-CMD ["python", "judge_server.py"] 
+# Create data directory with permissions
+RUN mkdir -p /app/data

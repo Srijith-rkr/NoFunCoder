@@ -5,10 +5,8 @@ docker build -t judge .
 ```
 2. Run the judge server:
 ```
-docker run -p 5000:5000 -v /path/to/test/cases:/app/test_cases code-judge
+docker run -it -v $(pwd)/data:/app/data judge bash
 ```
 
-3. Use the judge_submit_local function to submit code to the judge server. (Code change required)
-
-4. Run the evaluation script:
-python generate_eval.py --judge_url http://localhost:5000
+Use run_judge.py to run the judge on a given input file.
+Variables to set: TEST_PATH, DPO_OUTPUTS, INPUT_FILE
