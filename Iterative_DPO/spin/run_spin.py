@@ -120,17 +120,17 @@ def main():
     ###############
     # Load datasets
     ###############
-    if not data_args.use_local_dataset:
-        raw_datasets = get_datasets(data_args, splits=data_args.dataset_splits)
-        logger.info(
-            f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
-        )
-        column_names = list(raw_datasets["train"].features)
-    else:   
-        datafiles = [i for i in data_args.local_dataset_mixer]
-        raw_datasets = load_dataset("json", data_files=datafiles)
-        logger.info(f"Training on local dataset with {len(raw_datasets['train'])} samples")
-        column_names = list(raw_datasets["train"].features)
+    # if not data_args.use_local_dataset:
+    #     raw_datasets = get_datasets(data_args, splits=data_args.dataset_splits)
+    #     logger.info(
+    #         f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
+    #     )
+    #     column_names = list(raw_datasets["train"].features)
+    # else:   
+    #     datafiles = [i for i in data_args.local_dataset_mixer]
+    #     raw_datasets = load_dataset("json", data_files=datafiles)
+    #     logger.info(f"Training on local dataset with {len(raw_datasets['train'])} samples")
+    #     column_names = list(raw_datasets["train"].features)
 
     #####################################
     # Load tokenizer and process datasets
@@ -141,28 +141,89 @@ def main():
     #####################
     # Apply chat template
     #####################
-    raw_datasets = raw_datasets.map(
-        apply_chat_template,
-        fn_kwargs={"tokenizer": tokenizer, "task": "spin"},
-        num_proc=data_args.preprocessing_num_workers,
-        remove_columns=column_names,
-        desc="Formatting comparisons with prompt template",
-    )
+    # raw_datasets = raw_datasets.map(
+    #     apply_chat_template,
+    #     fn_kwargs={"tokenizer": tokenizer, "task": "spin"},
+    #     num_proc=data_args.preprocessing_num_workers,
+    #     remove_columns=column_names,
+    #     desc="Formatting comparisons with prompt template",
+    # )
 
-    # Replace column names with what TRL needs, text_real -> real and text_generated -> generated
-    if not data_args.use_local_dataset:
-        for split in ["train", "test"]:
-            raw_datasets[split] = raw_datasets[split].rename_columns(
-                {"text_prompt": "prompt", "text_real": "real", "text_generated": "generated"}
-            )
-    else:
-    # We do this since I did not generate the test data for iterations
-        raw_datasets['train'] = raw_datasets['train'].rename_columns(
-            {"text_prompt": "prompt", "text_real": "real", "text_generated": "generated"})
+    # # Replace column names with what TRL needs, text_real -> real and text_generated -> generated
+    # if not data_args.use_local_dataset:
+    #     for split in ["train", "test"]:
+    #         raw_datasets[split] = raw_datasets[split].rename_columns(
+    #             {"text_prompt": "prompt", "text_real": "real", "text_generated": "generated"}
+    #         )
+    # else:
+    # # We do this since I did not generate the test data for iterations
+    #     raw_datasets['train'] = raw_datasets['train'].rename_columns(
+    #         {"text_prompt": "prompt", "text_real": "real", "text_generated": "generated"})
         
-        raw_datasets['test'] = raw_datasets['train'].select(range(0, 500))
+    #     raw_datasets['test'] = raw_datasets['train'].select(range(0, 500))
 
-    
+    #######################################
+    # ECCO data stuff here
+    tokenizer.add_eos_token = True
+    tokenizer.pad_token_id = 0
+    tokenizer.padding_side = "left"
+
+    dataset = load_dataset('EfficientCode/ECCO', 'edit')
+    train_dataset = dataset['train']
+    eval_dataset = dataset['val']
+
+
+    print('debug')
+    tokenizer.add_eos_token = True
+    tokenizer.pad_token_id = 0
+    tokenizer.padding_side = "left"
+
+    def generate_and_tokenize_prompt(data_point, instruct=True, markdown=True, exec= False):
+        wrap_string = "```" if not markdown else "```python"
+
+        if exec:
+            full_prompt =f"""Optimize the python program below to be functionally equivalent but run faster and use less memory. Wrap the optimized code in a block of 3 backticks (```).\n
+## Program:
+{data_point["input"]}\n
+## Program's Execution results:\n
+{data_point['input_exec_feedback']}\n
+## Optimized (Runtime and Space) version of Program above:\n
+"""     
+            response = f"{wrap_string}\n{data_point['target']}\n```\n\n## Optimized version's execution results:\n{data_point['output_exec_feedback']}"
+            
+        else:
+            full_prompt =f"""Optimize the python program below to be functionally equivalent but run faster and use less memory. Wrap the optimized code in a block of 3 backticks (```).\n
+## Program:
+{data_point["input"]}\n
+## Optimized (Runtime and Space) version of Program above:\n### Response:\n
+"""
+            response = f"{wrap_string}\n{data_point['target']}\n```"
+
+        if not instruct:
+            full_seq = full_prompt + response
+        
+        else: # If chat template to be used 
+            messages = [
+                {'role': 'user', 'content': full_prompt},
+                {'role': 'assistant', 'content': response}
+            ]
+            
+            if 'codellama' in model_args.model_name_or_path:
+                full_seq = '[INST] ' + full_prompt[:-2] + '[/INST]\n' + response
+            else: # code llama does not have tokenizer.apply_chat_template implemented in huggingface 
+                full_seq = tokenizer.apply_chat_template(messages, tokenize=False)
+
+        data_point['prompt'] = tokenizer.apply_chat_template([{'role': 'user', 'content': full_prompt}], tokenize=False)
+        data_point['real'] =  response 
+        data_point['generated'] = response 
+        # data_point['template'] = full_seq
+        return data_point
+
+    orig_columns = [i for i in train_dataset.features]
+    train_dataset = train_dataset.map(generate_and_tokenize_prompt, remove_columns=orig_columns) 
+    val_dataset = eval_dataset.map(generate_and_tokenize_prompt, remove_columns=orig_columns)
+
+    #########################################
     
 
     torch_dtype = (
@@ -215,8 +276,10 @@ def main():
         ref_model_init_kwargs=ref_model_kwargs,
         args=training_args,
         beta=training_args.beta,
-        train_dataset=raw_datasets["train"],
-        eval_dataset=raw_datasets["test"],
+        # train_dataset=raw_datasets["train"],
+        # eval_dataset=raw_datasets["test"],
+        train_dataset=train_dataset,
+        eval_dataset=val_dataset,
         tokenizer=tokenizer,
         max_length=training_args.max_length,
         max_prompt_length=training_args.max_prompt_length,

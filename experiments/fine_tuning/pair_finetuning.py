@@ -102,7 +102,7 @@ def generate_and_tokenize_prompt(data_point, instruct=args.instruct, markdown=ar
         full_prompt =f"""Optimize the python program below to be functionally equivalent but run faster and use less memory. Wrap the optimized code in a block of 3 backticks (```).\n
 ## Program:
 {data_point["input"]}\n
-## Optimized (Runtime and Space) version of Program above:\n
+## Optimized (Runtime and Space) version of Program above:\n### Response:\n
 """
         response = f"{wrap_string}\n{data_point['target']}\n```"
 
