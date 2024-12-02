@@ -174,7 +174,7 @@ def main():
     else:
         dataset = load_dataset('EfficientCode/ECCO', 'edit')
         train_dataset = dataset['train']
-        eval_dataset = dataset['val']
+        val_dataset = dataset['val']
 
 
 
@@ -311,10 +311,10 @@ def main():
     ###############
     train_result = spin_trainer.train()
     metrics = train_result.metrics
-    max_train_samples = (
-        data_args.max_train_samples if data_args.max_train_samples is not None else len(raw_datasets["train"])
-    )
-    metrics["train_samples"] = min(max_train_samples, len(raw_datasets["train"]))
+    # max_train_samples = (
+    #     data_args.max_train_samples if data_args.max_train_samples is not None else len(raw_datasets["train"])
+    # )
+    # metrics["train_samples"] = min(max_train_samples, len(raw_datasets["train"]))
     spin_trainer.log_metrics("train", metrics)
     spin_trainer.save_metrics("train", metrics)
     spin_trainer.save_state()
