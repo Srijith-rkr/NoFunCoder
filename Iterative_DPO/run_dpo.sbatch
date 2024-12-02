@@ -16,7 +16,7 @@ source /data/tir/projects/tir7/user_data/srijithr/miniconda3/etc/profile.d/conda
 conda activate spin
 
 export OMP_NUM_THREADS=4 # should be equal to cpus-per-task / num gpus
-export NCCL_P2P_DISABLE=1 3 
+export NCCL_P2P_DISABLE=1 
 # export DS_SKIP_CUDA_CHECK=1
 export HF_DATASETS_CACHE=/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir
 

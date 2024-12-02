@@ -1,20 +1,24 @@
 # Model arguments
 model_name_or_path: deepseek-ai/deepseek-coder-7b-instruct-v1.5
+# model_name_or_path: Srijith-rkr/deepseek_SFT_history # If you want to start from SFT checkpoint
 # model_name_or_path: alignment-handbook/zephyr-7b-sft-full
 
 # Data training arguments
-dataset_mixer:
-  #HuggingFaceH4/ultrafeedback_binarized: 1.0
-  UCLA-AGI/SPIN_iter0: 1.0
-use_local_dataset : false
+use_local_dataset : true
+use_cot : true # for the failed sampels 
+use_only_failed_samples : true
 local_dataset_mixer:
-  - /home/srijithr/iterative-alignment/SPIN_implementation/data/gen_using_iter0_full_train/synthetic_train_iter0.json
-  - /home/srijithr/iterative-alignment/SPIN_implementation/data/gen_using_iter0_full_train/synthetic_train_iter1.json
+  - /home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/data/judge_base_deepseek_0_0.jsonl
+
 
 dataset_splits:
 - train
 - test
 preprocessing_num_workers: 12
+
+dataset_mixer: # ignore this - only for testing purposes 
+  #HuggingFaceH4/ultrafeedback_binarized: 1.0
+  UCLA-AGI/SPIN_iter0: 1.0
 
 # Trainer arguments
 bf16: true
@@ -31,7 +35,7 @@ logging_steps: 2
 lr_scheduler_type: linear
 max_length: 1024
 max_prompt_length: 512
-num_train_epochs: 1
+num_train_epochs: 3
 optim: rmsprop
 output_dir:  /home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/temp_dir
 # output_dir: /data/tir/projects/tir7/user_data/srijithr/anlp4_checkpoints # SRIJITH have to swich again.

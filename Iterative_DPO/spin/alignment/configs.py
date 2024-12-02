@@ -233,6 +233,15 @@ class DataArguments:
     use_local_dataset: Optional[bool] = field(
         default=False, metadata={"help": "Will use local dataset if specified"}
     )
+    use_cot: Optional[bool] = field(
+        default=False, metadata={"help": "Will use cot samples for negative data if specified"}
+    )
+
+    use_only_failed_samples: Optional[bool] = field(
+        default=False, metadata={"help": "Will use only failed samples if specified"}
+    )
+    
+
 
 
 @dataclass
