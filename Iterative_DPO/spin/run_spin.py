@@ -199,6 +199,7 @@ def main():
 {data_point["input"]}\n
 ## Optimized (Runtime and Space) version of Program above:\n### Response:\n
 """
+        try:
             if local_dataset:
                 if use_cot:
                     generated = data_point['full_generations'][0]
@@ -208,39 +209,31 @@ def main():
                 generated = f"{wrap_string}\n{data_point['target']}\n```" # does not make sense to do this - have it for testing purposes
 
             real =  f"{wrap_string}\n{data_point['target']}\n```"
-            
+                
+            use = False
+            if data_point['judge_results']['passed_all_test'] == False: # We only want to use the failed samples as the loser samples in DPO
+                use = True
 
-        # if not instruct:
-        #     full_seq = full_prompt + response
+            data_point['use'] = use
+            data_point['prompt'] = tokenizer.apply_chat_template([{'role': 'user', 'content': full_prompt}], tokenize=False)
+            data_point['real'] =  real 
+            data_point['chuck'] = False
+            data_point['generated'] = generated 
+
+
+            # data_point['template'] = full_seq
+            return data_point
+        except:
+            print(f"Error in generating and tokenizing prompt for {data_point}")
+            data_point['chuck'] = True
+            data_point['use'] = False
+            return data_point
         
-        # else: # If chat template to be used 
-        #     messages = [
-        #         {'role': 'user', 'content': full_prompt},
-        #         {'role': 'assistant', 'content': response}
-        #     ]
-            
-            # if 'codellama' in model_args.model_name_or_path:
-            #     full_seq = '[INST] ' + full_prompt[:-2] + '[/INST]\n' + response
-            # else: # code llama does not have tokenizer.apply_chat_template implemented in huggingface 
-            #     full_seq = tokenizer.apply_chat_template(messages, tokenize=False)
-        
-        use = False
-        if data_point['judge_results']['passed_all_test'] == False: # We only want to use the failed samples as the loser samples in DPO
-            use = True
-
-        data_point['use'] = use
-        data_point['prompt'] = tokenizer.apply_chat_template([{'role': 'user', 'content': full_prompt}], tokenize=False)
-        data_point['real'] =  real 
-        data_point['generated'] = generated 
-
-
-        # data_point['template'] = full_seq
-        return data_point
-
     orig_columns = [i for i in train_dataset.features if i != 'prompt']
-    train_dataset = train_dataset.map(generate_and_tokenize_prompt, remove_columns=orig_columns) 
+    train_dataset = train_dataset.map(generate_and_tokenize_prompt) 
     if data_args.use_only_failed_samples:
         train_dataset = train_dataset.filter(lambda example: example['use'] == True)
+    train_dataset = train_dataset.filter(lambda example: example['chuck'] == True)
     val_dataset = train_dataset.select(range(0, 500))
 
     #########################################
