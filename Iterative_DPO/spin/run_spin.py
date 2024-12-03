@@ -228,18 +228,10 @@ def main():
             data_point['generated'] = None
             data_point['chuck'] = True
 
-
-
-            # data_point['template'] = full_seq
-            return data_point
-        except:
-            print(f"Error in generating and tokenizing prompt for {data_point}")
-            data_point['chuck'] = True
-            data_point['use'] = False
-            return data_point
+        return data_point
         
     orig_columns = [i for i in train_dataset.features if i != 'prompt']
-    train_dataset = train_dataset.map(generate_and_tokenize_prompt) 
+    train_dataset = train_dataset.map(generate_and_tokenize_prompt,remove_columns=orig_columns) 
     if data_args.use_only_failed_samples:
         train_dataset = train_dataset.filter(lambda example: example['use'] == True) # only use samples with use = True 
     train_dataset = train_dataset.filter(lambda example: example['chuck'] == False) # only use samples with chueck = False 
