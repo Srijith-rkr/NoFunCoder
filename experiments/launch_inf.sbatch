@@ -21,21 +21,21 @@ export NCCL_P2P_DISABLE=1
 # export OMP_NUM_THREADS=10
 
 
-cd /home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/experiments
+cd /home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO
 
-# python inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch
-# python inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch
+# python experiments/inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch  G0
+# python experiments/inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch G1
 
-# python inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
-# python inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
+# python experiments/inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
+# python experiments/inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
 
-# python inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_3_epoch
-# python inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_3_epoch
+# python experiments/inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_3_epoch
+# python experiments/inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_3_epoch
 
-# python inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
-# python inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
+# python experiments/inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
+# python experiments/inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_NO_cot_all_samples_700_ckpt
 
-# python inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_YES_cot_only_failed_samples_3_epoch
-# python inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_YES_cot_only_failed_samples_3_epoch
+# python experiments/inference.py --eval_mode edit --finetuned_weights Srijith-rkr/deepseek_base_1e-3_YES_cot_only_failed_samples_3_epoch
+# python experiments/inference.py --eval_mode self-refine --finetuned_weights Srijith-rkr/deepseek_base_1e-3_YES_cot_only_failed_samples_3_epoch
 
 

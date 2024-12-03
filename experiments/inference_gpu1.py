@@ -1,6 +1,6 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # SRIJITH - added this line to set the GPU - chagne later
-# os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1' # SRIJITH - added this line to set the GPU - chagne later
+os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
 import pandas as pd
 from vllm import LLM, SamplingParams
 from datasets import load_dataset
@@ -66,7 +66,7 @@ parser.add_argument('--test_cases_path', default='./data/codenet/public_test_cas
 parser.add_argument('--nrows', default=None,type=int)
 parser.add_argument('--num_gpus',type=int, default=1)
 parser.add_argument('--finetuned_weights',type=str, default='Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch') # The official repo does not have finetuning code - have to check the shared folder
-parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='edit') 
+parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='self-refine') 
 args = parser.parse_args()
 
 if 'nl2code' not in args.eval_mode: # Editing setting

@@ -1,6 +1,6 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # SRIJITH - added this line to set the GPU - chagne later
-# os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' # SRIJITH - added this line to set the GPU - chagne later
+os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
 import pandas as pd
 from vllm import LLM, SamplingParams
 from datasets import load_dataset
