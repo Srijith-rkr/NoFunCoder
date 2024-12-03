@@ -180,6 +180,10 @@ class ModelArguments:
     )
     use_bnb_nested_quant: bool = field(default=False, metadata={"help": "use nested quantization"})
 
+    tokenizer_name_or_path: Optional[str] = field(
+        default=False, metadata={"help": "Will use only failed samples if specified"}
+    )
+
     def __post_init__(self):
         if self.load_in_8bit and self.load_in_4bit:
             raise ValueError("You can't use 8 bit and 4 bit precision at the same time")
@@ -240,7 +244,8 @@ class DataArguments:
     use_only_failed_samples: Optional[bool] = field(
         default=False, metadata={"help": "Will use only failed samples if specified"}
     )
-    
+
+
 
 
 
