@@ -4,3 +4,8 @@ gunicorn==20.1.0
 resource
 psutil
 datasets 
+pandas>=2.0.0
+line_profiler
+numpy
+tqdm
+timeout-decorator
