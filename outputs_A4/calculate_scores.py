@@ -6,7 +6,7 @@ wd = Path(__file__).parent
 import numpy as np  
 
 # 
-FOLDER_PATH = Path('/home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/evaluation/judge_eval/speed_judges')
+FOLDER_PATH = Path('/home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/outputs_A3/deepseek/judge_outputs/history_based')
 SAVE_PATH = '/home/srijithr/iterative-alignment/SPIN_implementation/ANLP_A4_ECCO/outputs.xlsx'
 files = os.listdir(FOLDER_PATH)
 
