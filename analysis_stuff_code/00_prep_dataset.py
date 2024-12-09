@@ -36,6 +36,7 @@ for file in json_files:
     if file_category == "infer":
         with open(file, 'r') as f:
             data = f.readlines()
+            data = [json.loads(x) for x in data]
             inference_outputs_df[remove_timestamp_from_filename(os.path.basename(file))] = data
     else:
         with open(file, 'r') as f:
@@ -55,4 +56,64 @@ print("Total number of sorted base filenames: ", len(sorted_base_filenames))
 print("Example sorted base filenames: ", *sorted_base_filenames, sep='\n')
 # number of unique elements print
 print("Number of unique elements in sorted_base_filenames: ", len(set(sorted_base_filenames)))
-assert(len(set(sorted_base_filenames)) == len(inference_outputs_df))
+unique_sorted_base_filenames = set(sorted_base_filenames)
+assert(len(unique_sorted_base_filenames) == len(inference_outputs_df))
+
+mapping_df = {x: "" for x in unique_sorted_base_filenames }
+
+# with open("mapping.json", 'r') as f:
+#     mapping_df = json.load(f)
+
+for key in mapping_df:
+    key_ans = []
+    
+    #######################
+    list1 = ["fewshotex0", "fewshotex2"]
+    # make sure atleast one is present
+    assert(any(x in key for x in list1))
+    if "fewshotex0" in key:
+        key_ans.append("zeroshot")
+    else:
+        key_ans.append("fewshot")
+    #############
+    list2 = ["only_failed", "only_speed", "speed_incorrect"]
+    # make sure atleast one is present
+    assert(any(x in key for x in list2))
+    if "only_failed" in key:
+        key_ans.append("only-failed")
+    elif "only_speed" in key:
+        key_ans.append("only-speed")
+    else:
+        key_ans.append("speed-incorrect")
+    ################
+    list3 = ["edit", "self-refine"]
+    # make sure atleast one is present
+    assert(any(x in key for x in list3))
+    if "edit" in key:
+        key_ans.append("edit")
+    else:
+        key_ans.append("self-refine")
+    #####
+    final_key = "_".join(key_ans)
+    mapping_df[key] = final_key
+
+# make sure all unique_sorted_base_filenames are in mapping_df, raise error if not
+for x in unique_sorted_base_filenames:
+    if x not in mapping_df:
+        print(f"Error: {x} not in mapping_df")
+        raise ValueError
+
+# replace the keys in inference_outputs_df and judge_results_df with the new keys
+inference_outputs_df = {mapping_df[k]: v for k, v in inference_outputs_df.items()}
+judge_results_df = {mapping_df[k]: v for k, v in judge_results_df.items()}
+
+all_keys = set(inference_outputs_df.keys()) | set(judge_results_df.keys())
+assert(all_keys == set(inference_outputs_df.keys()) == set(judge_results_df.keys()))
+#######################
+#### NOW START ASSEMBLING STUFF FOR ANALYSIS
+# read each print keys in first element
+for key_now in all_keys:
+    print(f"{key_now=}")
+    print(f"{inference_outputs_df[key_now][0].keys()}")
+    print(f"{judge_results_df[key_now]['0'].keys()}")
+    print("\n########")

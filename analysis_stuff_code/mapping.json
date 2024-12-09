@@ -1,0 +1,11 @@
+{
+    "deepseek_base_1e-4_NO_cot_only_failed_samples_100_ckpt_self-refine_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "zero_shot_only_failed_self_refine",
+    "deepseek_base_1e-4_NO_cot_only_speed_samples_10_epoch_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex2_samples1.jsonl": "two_shot_only_speed_edit",
+    "deepseek_base_1e-4_NO_cot_only_failed_samples_100_ckpt_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "zero_shot_only_failed_edit",
+    "deepseek_base_1e-4_NO_cot_speed_incorrect_samples_10_epoch_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "zero_shot_",
+    "deepseek_base_1e-4_NO_cot_only_speed_samples_10_epoch_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "",
+    "deepseek_base_1e-4_NO_cot_speed_incorrect_samples_10_epoch_self-refine_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "",
+    "deepseek_base_1e-4_NO_cot_speed_incorrect_samples_10_epoch_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex2_samples1.jsonl": "",
+    "deepseek_base_1e-4_NO_cot_only_speed_samples_10_epoch_self-refine_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex0_samples1.jsonl": "",
+    "deepseek_base_1e-4_NO_cot_only_failed_samples_100_ckpt_edit_deepseek_instruct_nrowsNone_tokens1024_temp0.0_fewshotex2_samples1.jsonl": ""
+}
