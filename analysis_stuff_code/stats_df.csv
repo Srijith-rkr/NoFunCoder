@@ -1,0 +1,28 @@
+Setting,All Passed Rate,Average Time Speed Up,Average Memory Speed Up,win_rate
+input_code,80.4,1.0,1.0,0.0
+deepseek | baseline | pre-refine,31.900000000000002,1.189,0.922,0.092
+deepseek | baseline | few-shot,35.099999999999994,1.375,1.139,0.085
+deepseek | baseline | self-refine,14.7,1.181,0.726,0.065
+deepseek | baseline | nl+exec-refine,28.999999999999996,1.606,0.933,0.087
+deepseek | baseline | exec-refine,28.299999999999997,1.01,0.79,0.119
+deepseek | baseline | Vanilla-SFT,35.3,0.979,1.045,0.071
+DPO-no-filter | pre-refine,37.5,1.237,1.042,0.182
+DPO-no-filter | few-shot,44.7,1.354,1.139,0.497
+DPO-no-filter | self-refine,18.8,0.972,0.614,0.122
+DPO-incorrectness-only-filter | pre-refine,44.800000000000004,1.214,1.082,0.149
+DPO-incorrectness-only-filter | few-shot,53.900000000000006,0.973,0.942,0.14
+DPO-incorrectness-only-filter | self-refine,19.400000000000002,1.147,0.77,0.128
+DPO-speed-only-filter | pre-refine,29.5,0.804,0.688,0.231
+DPO-speed-only-filter | few-shot,41.199999999999996,0.986,0.852,0.244
+DPO-speed-only-filter | self-refine,13.5,1.489,0.564,0.262
+DPO-incorrectness-speed-filter | pre-refine,32.7,1.011,0.811,0.311
+DPO-incorrectness-speed-filter | few-shot,42.8,1.207,0.856,0.508
+DPO-incorrectness-speed-filter | self-refine,18.4,1.241,0.695,0.269
+codellama | baseline | pre-refine,61.5,1.2,1.504,0.257
+codellama | baseline | few-shot,22.7,0.303,0.416,0.022
+codellama | baseline | self-refine,14.499999999999998,0.754,0.554,0.064
+codellama | baseline | exec-refine,55.900000000000006,0.89,1.355,0.076
+codellama | baseline | nl+exec refine,55.800000000000004,0.944,1.347,0.274
+codellama | profiled | pre-refine,65.5,1.161,1.404,0.161
+codellama | profiled | few-shot,31.2,0.594,0.584,0.131
+codellama | profiled | self-refine,19.8,0.888,0.734,0.077
