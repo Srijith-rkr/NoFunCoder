@@ -1,5 +1,4 @@
-# ANLP Assignment-4 NoFunCoder: 
-Enhancing Code Optimization forNon-Functional Requirements while maintaining correctness
+# ANLP Assignment-4 NoFunCoder: Enhancing Code Optimization forNon-Functional Requirements while maintaining correctness
 
 This repository contains the source code for implementing preference laerning and profiler based inference for the NoFunCoder project built on top of the work ECCO.
 
