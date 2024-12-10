@@ -192,6 +192,8 @@ unzip test_cases.zip
 
 NL-Instructed tasks have 'eval-mode's that begin with nl2code.
 
+To used the profiled dataser, use the flags `--use_profiler` and `--keep_only_profiled_data`.
+
 #### Pre-Refine
 
 * DeepSeek

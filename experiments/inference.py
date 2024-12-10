@@ -1,6 +1,7 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # SRIJITH - added this line to set the GPU - chagne later
-# os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '1' # SRIJITH - added this line to set the GPU - chagne later
+os.environ['HF_HOME']= '/data/tir/projects/tir7/user_data/lmaben/hf_home_dir'
+os.environ['HF_TOKEN']='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'
 import pandas as pd
 from vllm import LLM, SamplingParams
 from datasets import load_dataset
@@ -58,21 +59,34 @@ parser.add_argument('--max_new_tokens', default=1024,type=int)
 parser.add_argument('--few_shot_examples', default=0,type=int)
 parser.add_argument('--instruct_version', type=str, choices=['base', 'instruct'], default='instruct')
 parser.add_argument('--python_version', action='store_true', default=False) 
-parser.add_argument('--output_path', default='./inference_generations/generated_with_trained_DPO/')
+parser.add_argument('--output_path', default='./inference_generations/profiler')
 parser.add_argument('--num_samples', default=1,type=int)
 parser.add_argument('--num_refinements', default=1,type=int)
 parser.add_argument('--judge_url', default='http://ec2-18-220-179-89.us-east-2.compute.amazonaws.com:2358')
-parser.add_argument('--test_cases_path', default='./data/codenet/public_test_cases', help='Path to public test cases')
+parser.add_argument('--test_cases_path', default='/home/lmaben/cw/anlp/ANLP_A4_ECCO/data/codenet/public_test_cases', help='Path to public test cases')
 parser.add_argument('--nrows', default=None,type=int)
 parser.add_argument('--num_gpus',type=int, default=1)
-parser.add_argument('--finetuned_weights',type=str, default='Srijith-rkr/deepseek_base_1e-3_NO_cot_only_failed_samples_3_epoch') # The official repo does not have finetuning code - have to check the shared folder
-parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='edit') 
+parser.add_argument('--finetuned_weights',type=str, default=None) # The official repo does not have finetuning code - have to check the shared folder
+parser.add_argument('--eval_mode',type=str, choices=['edit', 'nl2code', 'self-refine', 'exec-refine','nl2code-self-refine', 'nl-exec-refine', 'nl2code-exec-refine', 'nl2code-nl-exec-refine'], default='self-refine') 
+parser.add_argument('--use_profiler', action='store_true', default=False) #Only used in edit based currently. TODO: Add for other modes when needeed
+parser.add_argument('--annotated_dataset_path', type=str, default='./data/annotated_dataset')
+parser.add_argument('--keep_only_profiled_data', action='store_true', default=False)
 args = parser.parse_args()
 
 if 'nl2code' not in args.eval_mode: # Editing setting
-    dataset = load_dataset('EfficientCode/ECCO', 'edit')
-    train = dataset['train'].to_pandas()
-    test = dataset['test'].to_pandas()
+    if not args.use_profiler:
+        dataset = load_dataset('EfficientCode/ECCO', 'edit')
+        train = dataset['train'].to_pandas()
+        test = dataset['test'].to_pandas()
+    else:
+        print('Using profiled dataset')
+        train = pd.read_csv(os.path.join(args.annotated_dataset_path, 'train_annotated.csv'))
+        test = pd.read_csv(os.path.join(args.annotated_dataset_path, 'test_annotated.csv'))
+        if args.keep_only_profiled_data:
+            print('Keeping only profiled data')
+            train = train[train['codes_annotated'] == True]
+            test = test[test['codes_annotated'] == True]
+            print(f'Kept {len(train)} training samples and {len(test)} test samples')
 
     # Define prompt builders for the optimization/editing setting
     coder_prompt_builder = build_coder_prompts
@@ -147,7 +161,7 @@ if args.eval_mode in ['edit', 'nl2code']: # Non refinement settings
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    filename = f"{args.finetuned_weights.split('/')[-1]}_{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
+    filename = f"{args.finetuned_weights.split('/')[-1] if args.finetuned_weights else 'No_Finetune'}_{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}{'_profiled' if args.use_profiler else ''}{'_keep_only_profiled' if args.keep_only_profiled_data and args.use_profiler else ''}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
 
     path = os.path.join(args.output_path, filename)
     out_file.to_json(path, orient='records', lines=True)
@@ -222,7 +236,7 @@ elif 'self-refine' in args.eval_mode:
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    filename = f"{args.finetuned_weights.split('/')[-1]}_{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
+    filename = f"{args.finetuned_weights.split('/')[-1] if args.finetuned_weights else 'No_Finetune'}_{args.eval_mode}_{args.model}_{args.instruct_version}_nrows{args.nrows}_tokens{args.max_new_tokens}_temp{args.temperature}_fewshotex{args.few_shot_examples}_samples{args.num_samples}{'_profiled' if args.use_profiler else ''}{'_keep_only_profiled' if args.keep_only_profiled_data and args.use_profiler else ''}_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.jsonl"
 
     path = os.path.join(args.output_path, filename)
     out_file.to_json(path, orient='records', lines=True)
