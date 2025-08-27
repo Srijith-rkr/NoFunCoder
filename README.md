@@ -1,11 +1,11 @@
-# ANLP Assignment-4 NoFunCoder: Enhancing Code Optimization forNon-Functional Requirements while maintaining correctness
+# NoFunCoder
+**Enhancing code optimization for non-functional requirements while maintaining correctness**
 
-This repository contains the source code for implementing preference laerning and profiler based inference for the NoFunCoder project built on top of the work ECCO.
+This repository contains the source code for implementing **preference learning** and **profiler-based inference** for the NoFunCoder project, built on top of **ECCO**.
 
-## Dashboard of Inference and Evaluation Outputs (Remiplemented Baselines and Our Method)
+## Dashboard of Inference and Evaluation Outputs (Reimplemented Baselines and Our Method)
 
-
-The outputs from our proposed method implementation can be found in the outputs_A4 directory with the structure shown below.
+The outputs from our method are located in the `outputs_A4/` directory. A typical layout is:
 
 ```bash
 ./outputs_A4
